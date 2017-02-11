@@ -13,44 +13,67 @@ import android.util.Log;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 import javax.net.ssl.HttpsURLConnection;
 
 public class NetworkFragment extends Fragment {
+
     public static final String TAG = "NetworkFragment";
+    private static final String REQUEST_URL_QUEUE_KEY = "requestUrlQueue";
 
-    private static final String URL_KEY = "UrlKey";
-
-    private OnCreatedListener mOnCreatedListener;
     private DownloadCallback mCallback;
     private DownloadTask mDownloadTask;
-    private String mUrlString;
-
-    public interface OnCreatedListener {
-        void onNetworkFragmentCreated();
-    }
+    private ArrayList<String> mRequestUrls;
 
     /**
      * Static initializer for NetworkFragment that sets the URL of the host it will be downloading
      * from.
      */
-    public static NetworkFragment getInstance(FragmentManager fragmentManager, String url) {
-        Log.d(TAG, "request url: " + url);
+    public static NetworkFragment getInstance(FragmentManager fragmentManager) {
         NetworkFragment networkFragment = new NetworkFragment();
-        Bundle args = new Bundle();
-        args.putString(URL_KEY, url);
-        networkFragment.setArguments(args);
         fragmentManager.beginTransaction().add(networkFragment, TAG).commit();
         return networkFragment;
+    }
+
+    public void addRequestUrl(String url) {
+        if (mRequestUrls != null) {
+            if (!mRequestUrls.contains(url)) {
+                mRequestUrls.add(url);
+            }
+        } else {
+            mRequestUrls = new ArrayList<>();
+            mRequestUrls.add(url);
+        }
+
+        if (mRequestUrls.size() == 1) {
+            startDownloadForRequestUrl(mRequestUrls.get(0));
+        }
+    }
+
+    public boolean isDownloading() {
+        if (mRequestUrls != null) {
+            return mRequestUrls.size() > 0;
+        }
+        return false;
     }
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         Log.d(TAG, "onCreate");
         super.onCreate(savedInstanceState);
-        mUrlString = getArguments().getString(URL_KEY);
-        mOnCreatedListener.onNetworkFragmentCreated();
+
+        // Retain this Fragment across configuration changes in the host Activity.
+//        setRetainInstance(true);
+
+        Bundle args = getArguments();
+        if (args != null && args.containsKey(REQUEST_URL_QUEUE_KEY)) {
+            ArrayList<String> requestUrls = args.getStringArrayList(REQUEST_URL_QUEUE_KEY);
+            if (requestUrls != null && requestUrls.size() > 0) {
+                startDownloadForRequestUrl(requestUrls.get(0));
+            }
+        }
     }
 
     @Override
@@ -58,7 +81,6 @@ public class NetworkFragment extends Fragment {
         Log.d(TAG, "onAttach");
         super.onAttach(context);
         // Host Activity will handle callbacks from task.
-        mOnCreatedListener = (OnCreatedListener) context;
         mCallback = (DownloadCallback) context;
     }
 
@@ -79,11 +101,11 @@ public class NetworkFragment extends Fragment {
     /**
      * Start non-blocking execution of DownloadTask.
      */
-    public void startDownload() {
+    private void startDownloadForRequestUrl(String url) {
         cancelDownload();
-        mDownloadTask = new DownloadTask(mCallback);
-        Log.d(TAG, "startDownload");
-        mDownloadTask.execute(mUrlString);
+        mDownloadTask = new DownloadTask(url, mCallback);
+        Log.d(TAG, "startDownload for url: " + url);
+        mDownloadTask.execute();
     }
 
     /**
@@ -95,16 +117,31 @@ public class NetworkFragment extends Fragment {
         }
     }
 
+    private void finishDownloading() {
+        if (mRequestUrls != null && mRequestUrls.size() > 0) {
+            mRequestUrls.remove(0);
+            if (mRequestUrls.size() > 0) {
+                startDownloadForRequestUrl(mRequestUrls.get(0));
+            }
+        }
+    }
 
     /**
      * Implementation of AsyncTask designed to fetch data from the network.
      */
-    private class DownloadTask extends AsyncTask<String, Integer, DownloadTask.Result> {
+    private class DownloadTask extends AsyncTask<Void, Integer, DownloadTask.Result> {
 
+        private String mUrl;
         private DownloadCallback<String> mCallback;
+        private boolean mRunning;
 
-        DownloadTask(DownloadCallback<String> callback) {
+        DownloadTask(String url, DownloadCallback<String> callback) {
+            setUrl(url);
             setCallback(callback);
+        }
+
+        void setUrl(String url) {
+            mUrl = url;
         }
 
         void setCallback(DownloadCallback<String> callback) {
@@ -132,13 +169,14 @@ public class NetworkFragment extends Fragment {
          */
         @Override
         protected void onPreExecute() {
+            mRunning = true;
             if (mCallback != null) {
                 NetworkInfo networkInfo = mCallback.getActiveNetworkInfo();
                 if (networkInfo == null || !networkInfo.isConnected() ||
                         (networkInfo.getType() != ConnectivityManager.TYPE_WIFI
                                 && networkInfo.getType() != ConnectivityManager.TYPE_MOBILE)) {
                     // If no connectivity, cancel task and update Callback with null data.
-                    mCallback.updateFromDownload(null);
+                    mCallback.updateFromDownload(null, mUrl);
                     cancel(true);
                 }
             }
@@ -148,12 +186,11 @@ public class NetworkFragment extends Fragment {
          * Defines work to perform on the background thread.
          */
         @Override
-        protected DownloadTask.Result doInBackground(String... urls) {
+        protected DownloadTask.Result doInBackground(Void... params) {
             Result result = null;
-            if (!isCancelled() && urls != null && urls.length > 0) {
-                String urlString = urls[0];
+            if (!isCancelled() && mUrl != null) {
                 try {
-                    URL url = new URL(urlString);
+                    URL url = new URL(mUrl);
                     String resultString = getResponseFromHttpUrl(url);
                     if (resultString != null) {
                         result = new Result(resultString);
@@ -172,13 +209,15 @@ public class NetworkFragment extends Fragment {
          */
         @Override
         protected void onPostExecute(Result result) {
+            mRunning = false;
             if (result != null && mCallback != null) {
                 if (result.mException != null) {
-                    mCallback.updateFromDownload(result.mException.getMessage());
+                    mCallback.updateFromDownload(result.mException.getMessage(), mUrl);
                 } else if (result.mResultValue != null) {
-                    mCallback.updateFromDownload(result.mResultValue);
+                    mCallback.updateFromDownload(result.mResultValue, mUrl);
                 }
-                mCallback.finishDownloading();
+                mCallback.finishDownloading(mUrl);
+                finishDownloading();
             }
         }
 
@@ -230,6 +269,10 @@ public class NetworkFragment extends Fragment {
                 }
             }
             return result;
+        }
+
+        public boolean isRunning() {
+            return mRunning;
         }
 
     }

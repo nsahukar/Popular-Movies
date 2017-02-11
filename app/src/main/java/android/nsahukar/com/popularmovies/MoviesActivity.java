@@ -8,10 +8,13 @@ import android.nsahukar.com.popularmovies.network.DownloadCallback;
 import android.nsahukar.com.popularmovies.utilities.MoviesJsonUtils;
 import android.nsahukar.com.popularmovies.utilities.MoviesUrlUtils;
 import android.nsahukar.com.popularmovies.network.NetworkFragment;
+import android.support.design.widget.TabLayout;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentPagerAdapter;
+import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.support.v7.widget.GridLayoutManager;
-import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.widget.Toast;
@@ -20,32 +23,55 @@ import org.json.JSONException;
 
 import java.util.ArrayList;
 
-public class MoviesActivity extends AppCompatActivity implements NetworkFragment.OnCreatedListener, DownloadCallback<String> {
+public class MoviesActivity extends AppCompatActivity implements DownloadCallback<String>, MoviesFragment.OnFragmentInteractionListener {
 
     private static final String TAG = "MoviesActivity";
+    private static final int SECTION_POPULAR_MOVIES = 0;
+    private static final int SECTION_TOP_RATED_MOVIES = 1;
     private static final String STATE_POPULAR_MOVIES = "popularMovies";
+    private static final String STATE_TOP_RATED_MOVIES = "topRatedMovies";
 
-    private Toolbar mMoviesToolbar;
+    private ViewPager mMoviesViewPager;
     private Toast mToast;
 
-    // Keep a reference to the NetworkFragment, which owns the AsyncTask object
-    // that is used to execute network ops.
     private NetworkFragment mNetworkFragment;
-
-    // Boolean telling us whether a download is in progress, so we don't trigger overlapping
-    // downloads with consecutive button clicks.
-    private boolean mDownloading = false;
+    private MoviesFragment mPopularMoviesFragment;
+    private MoviesFragment mTopRatedMoviesFragment;
 
     private ArrayList<Movie> mPopularMovies;
-    private RecyclerView mRecyclerView;
-    private MoviesAdapter mMoviesAdapter;
+    private ArrayList<Movie> mTopRatedMovies;
 
 
-    private void loadPopularMovies() {
-        if (!mDownloading && mNetworkFragment != null) {
-            // Execute the async download.
-            mNetworkFragment.startDownload();
-            mDownloading = true;
+
+    private void getMoviesForSection(int section) {
+        switch (section) {
+            case SECTION_POPULAR_MOVIES:
+                if (mPopularMovies != null) {
+                    showMoviePostersForSection(section);
+                } else {
+                    mNetworkFragment.addRequestUrl(MoviesUrlUtils.getPopularMoviesUrl());
+                }
+                break;
+
+            case SECTION_TOP_RATED_MOVIES:
+                if (mTopRatedMovies != null) {
+                    showMoviePostersForSection(section);
+                } else {
+                    mNetworkFragment.addRequestUrl(MoviesUrlUtils.getTopRatedMoviesUrl());
+                }
+                break;
+        }
+    }
+
+    private void showMoviePostersForSection(int section) {
+        switch (section) {
+            case SECTION_POPULAR_MOVIES:
+                mPopularMoviesFragment.setMovies(mPopularMovies);
+                break;
+
+            case SECTION_TOP_RATED_MOVIES:
+                mTopRatedMoviesFragment.setMovies(mTopRatedMovies);
+                break;
         }
     }
 
@@ -57,8 +83,51 @@ public class MoviesActivity extends AppCompatActivity implements NetworkFragment
         mToast.show();
     }
 
-    private void showPopularMoviesPosters() {
-        mMoviesAdapter.setPopularMovies(mPopularMovies);
+    private class MovieSectionsPagerAdapter extends FragmentPagerAdapter {
+
+        public MovieSectionsPagerAdapter(FragmentManager fm) {
+            super(fm);
+        }
+
+        @Override
+        public Fragment getItem(int position) {
+            switch (position) {
+                case SECTION_POPULAR_MOVIES:
+                    if (mPopularMoviesFragment == null) {
+                        Log.d(TAG, "creating popular movies fragment");
+                        mPopularMoviesFragment = MoviesFragment.getInstance(SECTION_POPULAR_MOVIES);
+                    }
+                    return mPopularMoviesFragment;
+
+                case SECTION_TOP_RATED_MOVIES:
+                    if (mTopRatedMoviesFragment == null) {
+                        Log.d(TAG, "creating top rated movies fragment");
+                        mTopRatedMoviesFragment = MoviesFragment.getInstance(SECTION_TOP_RATED_MOVIES);
+                    }
+                    return mTopRatedMoviesFragment;
+            }
+            return null;
+        }
+
+        @Override
+        public int getCount() {
+            return 2;
+        }
+
+        @Override
+        public CharSequence getPageTitle(int position) {
+            String title = null;
+            switch (position) {
+                case SECTION_POPULAR_MOVIES:
+                    title = getString(R.string.section_popular_movies_title);
+                    break;
+
+                case SECTION_TOP_RATED_MOVIES:
+                    title = getString(R.string.section_top_rated_movies_title);
+                    break;
+            }
+            return title;
+        }
     }
 
 
@@ -67,54 +136,89 @@ public class MoviesActivity extends AppCompatActivity implements NetworkFragment
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_movies);
 
-        // set up toolbar
-        mMoviesToolbar = (Toolbar) findViewById(R.id.tb_movies);
-        setSupportActionBar(mMoviesToolbar);
+        Log.d(TAG, "onCreate called");
 
-        // set up recycler view
-        mRecyclerView = (RecyclerView) findViewById(R.id.rv_popular_movies);
-        GridLayoutManager gridLayoutManager = new GridLayoutManager(MoviesActivity.this, 2, GridLayoutManager.VERTICAL, false);
-        mRecyclerView.setLayoutManager(gridLayoutManager);
-        mRecyclerView.setHasFixedSize(true);
-
-        // set adapter to recycler view
-        mMoviesAdapter = new MoviesAdapter(MoviesActivity.this);
-        mRecyclerView.setAdapter(mMoviesAdapter);
-
-        // get data from savedInstanceState, if any, otherwise get data over the network
-        if (savedInstanceState != null && savedInstanceState.containsKey(STATE_POPULAR_MOVIES)) {
-            mPopularMovies = savedInstanceState.getParcelableArrayList(STATE_POPULAR_MOVIES);
-            Log.d(TAG, "Popular movies count: " + mPopularMovies.size());
-            showPopularMoviesPosters();
-        } else {
-            Log.d(TAG, "Getting popular movies from network");
-            mNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), MoviesUrlUtils.getPopularMoviesUrl());
+        mNetworkFragment = (NetworkFragment) getSupportFragmentManager().findFragmentByTag(NetworkFragment.TAG);
+        if (mNetworkFragment == null) {
+            mNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager());
         }
+        mPopularMoviesFragment = (MoviesFragment) getSupportFragmentManager().findFragmentByTag("android:switcher:" + R.id.vp_movies + ":" + SECTION_POPULAR_MOVIES);
+        mTopRatedMoviesFragment = (MoviesFragment) getSupportFragmentManager().findFragmentByTag("android:switcher:" + R.id.vp_movies + ":" + SECTION_TOP_RATED_MOVIES);
+
+        // get data from savedInstanceState
+        if (savedInstanceState != null) {
+            if (savedInstanceState.containsKey(STATE_POPULAR_MOVIES)) {
+                mPopularMovies = savedInstanceState.getParcelableArrayList(STATE_POPULAR_MOVIES);
+            }
+            if (savedInstanceState.containsKey(STATE_TOP_RATED_MOVIES)) {
+                mTopRatedMovies = savedInstanceState.getParcelableArrayList(STATE_TOP_RATED_MOVIES);
+            }
+        }
+
+        // set up toolbar
+        Toolbar moviesToolbar = (Toolbar) findViewById(R.id.tb_movies);
+        setSupportActionBar(moviesToolbar);
+
+        // set up view pager
+        mMoviesViewPager = (ViewPager) findViewById(R.id.vp_movies);
+        MovieSectionsPagerAdapter movieSectionsPagerAdapter = new MovieSectionsPagerAdapter(getSupportFragmentManager());
+        mMoviesViewPager.setAdapter(movieSectionsPagerAdapter);
+
+        // set up tab layout
+        TabLayout moviesTabLayout = (TabLayout) findViewById(R.id.tl_movies);
+        moviesTabLayout.setupWithViewPager(mMoviesViewPager);
+
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        // this means that this activity will not be recreated now, user is leaving it
+        // or the activity is otherwise finishing
+        if (isFinishing()) {
+            Log.d(TAG, "activity finishing!!!");
+            FragmentManager fragmentManager = getSupportFragmentManager();
+            for (Fragment fragment : fragmentManager.getFragments()) {
+                fragmentManager.beginTransaction().remove(fragment).commit();
+            }
+        }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        Log.d(TAG, "onSaveInstanceState called");
+        // save the current state
+        if (mPopularMovies != null) {
+            outState.putParcelableArrayList(STATE_POPULAR_MOVIES, mPopularMovies);
+            outState.putParcelableArrayList(STATE_TOP_RATED_MOVIES, mTopRatedMovies);
+        }
+        super.onSaveInstanceState(outState);
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        mMoviesToolbar = null;
-        mToast = null;
-        mNetworkFragment = null;
-        mDownloading = false;
-        mPopularMovies = null;
-        mRecyclerView = null;
-        mMoviesAdapter = null;
+        Log.d(TAG, "on stop called");
+        Log.d(TAG, "Number of fragments attached: " + getSupportFragmentManager().getFragments().size());
     }
 
-    @Override
-    public void onNetworkFragmentCreated() {
-        loadPopularMovies();
-    }
+    /**
+     *  Network Fragment Callbacks
+     */
 
     @Override
-    public void updateFromDownload(String result) {
+    public void updateFromDownload(String result, String url) {
         // Update your UI here based on result of download.
         try {
-            mPopularMovies = MoviesJsonUtils.getPopularMoviesArrayFromJson(result);
-            showPopularMoviesPosters();
+            if (url.equals(MoviesUrlUtils.getPopularMoviesUrl())) {
+                mPopularMovies = MoviesJsonUtils.getPopularMoviesArrayFromJson(result);
+                showMoviePostersForSection(SECTION_POPULAR_MOVIES);
+            }
+            else if (url.equals(MoviesUrlUtils.getTopRatedMoviesUrl())) {
+                mTopRatedMovies = MoviesJsonUtils.getTopRatedMoviesArrayFromJson(result);
+                showMoviePostersForSection(SECTION_TOP_RATED_MOVIES);
+            }
         } catch (NullPointerException e) {
             showToastWithMessage("Please make sure you are connected to the internet");
             e.printStackTrace();
@@ -135,7 +239,7 @@ public class MoviesActivity extends AppCompatActivity implements NetworkFragment
     }
 
     @Override
-    public void onProgressUpdate(int progressCode, int percentComplete) {
+    public void onProgressUpdate(int progressCode, int percentComplete, String url) {
         switch(progressCode) {
             case Progress.ERROR:
                 break;
@@ -151,19 +255,24 @@ public class MoviesActivity extends AppCompatActivity implements NetworkFragment
     }
 
     @Override
-    public void finishDownloading() {
-        mDownloading = false;
-        if (mNetworkFragment != null) {
-            mNetworkFragment.cancelDownload();
-        }
+    public void finishDownloading(String url) {
+
+    }
+
+
+    /**
+     *  Movies Fragment Callbacks
+     */
+
+    @Override
+    public void getMoviesForFragmentAtSection(int section) {
+        Log.d(TAG, "movie fragment created for section: " + section);
+        getMoviesForSection(section);
     }
 
     @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        // save the current state
-        if (mPopularMovies != null) {
-            outState.putParcelableArrayList(STATE_POPULAR_MOVIES, mPopularMovies);
-        }
-        super.onSaveInstanceState(outState);
+    public void showMovieDetails(Movie movie) {
+
     }
+
 }

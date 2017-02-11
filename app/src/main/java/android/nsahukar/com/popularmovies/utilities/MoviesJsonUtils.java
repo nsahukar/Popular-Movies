@@ -61,4 +61,8 @@ public final class MoviesJsonUtils {
         return popularMovies;
     }
 
+    public static ArrayList<Movie> getTopRatedMoviesArrayFromJson(String topRatedMoviesJsonStr) throws JSONException {
+        return getPopularMoviesArrayFromJson(topRatedMoviesJsonStr);
+    }
+
 }

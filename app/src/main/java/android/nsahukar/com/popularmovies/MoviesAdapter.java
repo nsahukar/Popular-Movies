@@ -21,7 +21,7 @@ import java.util.ArrayList;
 public class MoviesAdapter extends RecyclerView.Adapter<MoviesAdapter.MoviesAdapterViewHolder> {
 
     private static final String TAG = "MoviesAdapter";
-    private ArrayList<Movie> mPopularMovies;
+    private ArrayList<Movie> mMovies;
     private Context mContext;
 
     public MoviesAdapter(Context context) {
@@ -38,8 +38,8 @@ public class MoviesAdapter extends RecyclerView.Adapter<MoviesAdapter.MoviesAdap
         }
     }
 
-    public void setPopularMovies(ArrayList<Movie> popularMovies) {
-        mPopularMovies = popularMovies;
+    public void setMovies(ArrayList<Movie> movies) {
+        mMovies = movies;
         notifyDataSetChanged();
     }
 
@@ -56,16 +56,16 @@ public class MoviesAdapter extends RecyclerView.Adapter<MoviesAdapter.MoviesAdap
 
     @Override
     public void onBindViewHolder(MoviesAdapterViewHolder holder, int position) {
-        Movie popularMovie = mPopularMovies.get(position);
-        final String popularMoviePosterUrl = MoviesUrlUtils.getPopularMoviePosterUrl(MoviesUrlUtils.Image.IMAGE_SIZE_DEFAULT, popularMovie.getPosterPath());
+        Movie popularMovie = mMovies.get(position);
+        final String popularMoviePosterUrl = MoviesUrlUtils.getMoviePosterUrl(MoviesUrlUtils.Image.IMAGE_SIZE_DEFAULT, popularMovie.getPosterPath());
         Log.d(TAG, "poster url: " + popularMoviePosterUrl);
         Picasso.with(mContext).load(popularMoviePosterUrl).into(holder.mMoviePosterImageView);
     }
 
     @Override
     public int getItemCount() {
-        if (mPopularMovies != null) {
-            return mPopularMovies.size();
+        if (mMovies != null) {
+            return mMovies.size();
         }
         return 0;
     }

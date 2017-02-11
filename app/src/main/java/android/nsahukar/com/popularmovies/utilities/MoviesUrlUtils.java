@@ -10,6 +10,7 @@ public final class MoviesUrlUtils {
 
     private static final String BASE_URL = "https://api.themoviedb.org/3";
     private static final String POPULAR_MOVIES_EXTENSION = "/movie/popular";
+    private static final String TOP_RATED_MOVIES_EXTENSION = "/movie/top_rated";
 
     private static final String apiKey = "08b58d6533f2853d6cca45e68b601a40";
     private static final String langauge = "en-US";
@@ -50,7 +51,11 @@ public final class MoviesUrlUtils {
         return buildUrlWithExtension(POPULAR_MOVIES_EXTENSION);
     }
 
-    public static String getPopularMoviePosterUrl(String imageSize, String posterPath) {
+    public static String getTopRatedMoviesUrl() {
+        return buildUrlWithExtension(TOP_RATED_MOVIES_EXTENSION);
+    }
+
+    public static String getMoviePosterUrl(String imageSize, String posterPath) {
         final String extension = imageSize + posterPath;
         return buildImageUrlWithExtension(extension);
     }

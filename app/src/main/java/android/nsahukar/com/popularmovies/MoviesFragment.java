@@ -1,12 +1,19 @@
 package android.nsahukar.com.popularmovies;
 
 import android.content.Context;
-import android.net.Uri;
+import android.nsahukar.com.popularmovies.data.Movie;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
+import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+
+import java.util.ArrayList;
 
 
 /**
@@ -17,25 +24,25 @@ import android.view.ViewGroup;
  */
 public class MoviesFragment extends Fragment {
 
+    public static final String TAG = "MoviesFragment";
+    private static final String SECTION_KEY = "section";
+
+    private int mMovieSection;
+    private RecyclerView mRecyclerView;
+    private MoviesAdapter mMoviesAdapter;
+
     private OnFragmentInteractionListener mListener;
 
     public MoviesFragment() {
         // Required empty public constructor
     }
 
-
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_movies, container, false);
-    }
-
-    // TODO: Rename method, update argument and hook method into UI event
-    public void onButtonPressed(Uri uri) {
-        if (mListener != null) {
-            mListener.onFragmentInteraction(uri);
-        }
+    public static MoviesFragment getInstance(int section) {
+        MoviesFragment moviesFragment = new MoviesFragment();
+        Bundle args = new Bundle();
+        args.putInt(SECTION_KEY, section);
+        moviesFragment.setArguments(args);
+        return moviesFragment;
     }
 
     @Override
@@ -50,8 +57,50 @@ public class MoviesFragment extends Fragment {
     }
 
     @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        Bundle args = getArguments();
+        if (args != null && args.containsKey(SECTION_KEY)) {
+            mMovieSection = args.getInt(SECTION_KEY);
+        }
+    }
+
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        mListener.getMoviesForFragmentAtSection(mMovieSection);
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
+        mRecyclerView = (RecyclerView) inflater.inflate(R.layout.fragment_movies, container, false);
+
+        // set up recycler view
+        GridLayoutManager gridLayoutManager = new GridLayoutManager(getContext(), 2, GridLayoutManager.VERTICAL, false);
+        mRecyclerView.setLayoutManager(gridLayoutManager);
+        mRecyclerView.setHasFixedSize(true);
+
+        // set adapter to recycler view
+        mMoviesAdapter = new MoviesAdapter(getContext());
+        mRecyclerView.setAdapter(mMoviesAdapter);
+
+        return mRecyclerView;
+    }
+
+    // TODO: Rename method, update argument and hook method into UI event
+//    public void onButtonPressed(Uri uri) {
+//        if (mListener != null) {
+//            mListener.onFragmentInteraction(uri);
+//        }
+//    }
+
+    @Override
     public void onDetach() {
         super.onDetach();
+        mRecyclerView = null;
+        mMoviesAdapter = null;
         mListener = null;
     }
 
@@ -66,7 +115,11 @@ public class MoviesFragment extends Fragment {
      * >Communicating with Other Fragments</a> for more information.
      */
     public interface OnFragmentInteractionListener {
-        // TODO: Update argument type and name
-        void onFragmentInteraction(Uri uri);
+        void getMoviesForFragmentAtSection(int section);
+        void showMovieDetails(Movie movie);
+    }
+
+    public void setMovies(ArrayList<Movie> movies) {
+        mMoviesAdapter.setMovies(movies);
     }
 }
