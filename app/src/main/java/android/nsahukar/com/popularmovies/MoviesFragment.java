@@ -76,9 +76,10 @@ public class MoviesFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        mRecyclerView = (RecyclerView) inflater.inflate(R.layout.fragment_movies, container, false);
+        View view = inflater.inflate(R.layout.fragment_movies, container, false);
 
         // set up recycler view
+        mRecyclerView = (RecyclerView) view.findViewById(R.id.rv_popular_movies);
         GridLayoutManager gridLayoutManager = new GridLayoutManager(getContext(), 2, GridLayoutManager.VERTICAL, false);
         mRecyclerView.setLayoutManager(gridLayoutManager);
         mRecyclerView.setHasFixedSize(true);
@@ -89,7 +90,7 @@ public class MoviesFragment extends Fragment {
         mMoviesAdapter = new MoviesAdapter(getContext());
         mRecyclerView.setAdapter(mMoviesAdapter);
 
-        return mRecyclerView;
+        return view;
     }
 
     @Override

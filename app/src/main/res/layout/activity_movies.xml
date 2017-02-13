@@ -50,8 +50,7 @@
             android:background="@color/colorPrimary"
             android:elevation="4dp"
             app:tabBackground="?attr/selectableItemBackgroundBorderless"
-            app:tabGravity="fill"
-            app:tabMaxWidth="0dp"
+
             app:tabMode="fixed"
             app:tabSelectedTextColor="@color/textColorPrimary"
             app:tabTextColor="@color/textColorPrimaryDisableOnly" />
