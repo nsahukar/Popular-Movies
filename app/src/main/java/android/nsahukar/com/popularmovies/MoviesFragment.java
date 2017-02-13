@@ -1,14 +1,15 @@
 package android.nsahukar.com.popularmovies;
 
 import android.content.Context;
+import android.graphics.Rect;
 import android.nsahukar.com.popularmovies.data.Movie;
 import android.os.Bundle;
+import android.support.annotation.DimenRes;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentManager;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,7 +26,7 @@ import java.util.ArrayList;
 public class MoviesFragment extends Fragment {
 
     public static final String TAG = "MoviesFragment";
-    private static final String SECTION_KEY = "section";
+    private static final String SECTION_KEY = "Section";
 
     private int mMovieSection;
     private RecyclerView mRecyclerView;
@@ -81,6 +82,8 @@ public class MoviesFragment extends Fragment {
         GridLayoutManager gridLayoutManager = new GridLayoutManager(getContext(), 2, GridLayoutManager.VERTICAL, false);
         mRecyclerView.setLayoutManager(gridLayoutManager);
         mRecyclerView.setHasFixedSize(true);
+        ItemOffsetDecoration itemDecoration = new ItemOffsetDecoration(getContext(), R.dimen.grid_item_offset);
+        mRecyclerView.addItemDecoration(itemDecoration);
 
         // set adapter to recycler view
         mMoviesAdapter = new MoviesAdapter(getContext());
@@ -89,19 +92,32 @@ public class MoviesFragment extends Fragment {
         return mRecyclerView;
     }
 
-    // TODO: Rename method, update argument and hook method into UI event
-//    public void onButtonPressed(Uri uri) {
-//        if (mListener != null) {
-//            mListener.onFragmentInteraction(uri);
-//        }
-//    }
-
     @Override
     public void onDetach() {
         super.onDetach();
         mRecyclerView = null;
         mMoviesAdapter = null;
         mListener = null;
+    }
+
+    private class ItemOffsetDecoration extends RecyclerView.ItemDecoration {
+
+        private int mItemOffset;
+
+        public ItemOffsetDecoration(int itemOffset) {
+            mItemOffset = itemOffset;
+        }
+
+        public ItemOffsetDecoration(@NonNull Context context, @DimenRes int itemOffsetId) {
+            this(context.getResources().getDimensionPixelSize(itemOffsetId));
+        }
+
+        @Override
+        public void getItemOffsets(Rect outRect, View view, RecyclerView parent,
+                                   RecyclerView.State state) {
+            super.getItemOffsets(outRect, view, parent, state);
+            outRect.set(mItemOffset, mItemOffset, mItemOffset, mItemOffset);
+        }
     }
 
     /**
@@ -116,7 +132,6 @@ public class MoviesFragment extends Fragment {
      */
     public interface OnFragmentInteractionListener {
         void getMoviesForFragmentAtSection(int section);
-        void showMovieDetails(Movie movie);
     }
 
     public void setMovies(ArrayList<Movie> movies) {

@@ -2,25 +2,59 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/backgroundColor">
+
+    <LinearLayout
+        android:id="@+id/ll_error"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:paddingBottom="16dp"
+        android:paddingEnd="16dp"
+        android:paddingStart="16dp"
+        android:paddingTop="?attr/actionBarSize"
+        android:visibility="invisible">
+
+        <TextView
+            android:id="@+id/tv_err_message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:gravity="center"
+            android:textColor="@color/textColorSecondary"
+            android:textSize="20sp" />
+
+        <Button
+            android:id="@+id/btn_retry"
+            style="@style/Widget.AppCompat.Button.Colored"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="16dp"
+            android:elevation="8dp"
+            android:text="@string/btn_retry" />
+    </LinearLayout>
 
     <android.support.v4.view.ViewPager
         android:id="@+id/vp_movies"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:elevation="4dp"
         android:paddingTop="?attr/actionBarSize">
 
         <android.support.design.widget.TabLayout
             android:id="@+id/tl_movies"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:tabBackground="@color/colorPrimaryDark"
-            app:tabMaxWidth="0dp"
+            android:background="@color/colorPrimary"
+            android:elevation="4dp"
+            app:tabBackground="?attr/selectableItemBackgroundBorderless"
             app:tabGravity="fill"
+            app:tabMaxWidth="0dp"
             app:tabMode="fixed"
-            app:tabSelectedTextColor="@color/textColor"
-            app:tabTextColor="@color/colorPrimary" />
+            app:tabSelectedTextColor="@color/textColorPrimary"
+            app:tabTextColor="@color/textColorPrimaryDisableOnly" />
 
     </android.support.v4.view.ViewPager>
 
@@ -28,8 +62,14 @@
         android:id="@+id/tb_movies"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:layout_gravity="top"
-        android:background="@color/colorPrimaryDark"
-        app:title="@string/activity_movies_title"
-        app:titleTextColor="@color/textColor" />
+        android:background="?attr/colorPrimary"
+        app:popupTheme="@style/AppTheme.PopupOverlay" />
+
+    <ProgressBar
+        android:id="@+id/pb_loading_indicator"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
+        android:layout_gravity="center"
+        android:visibility="invisible" />
+
 </FrameLayout>

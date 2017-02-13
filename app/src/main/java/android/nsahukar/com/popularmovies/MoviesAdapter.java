@@ -8,7 +8,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
+import android.widget.ImageButton;
 
 import com.squareup.picasso.Picasso;
 
@@ -24,17 +24,36 @@ public class MoviesAdapter extends RecyclerView.Adapter<MoviesAdapter.MoviesAdap
     private ArrayList<Movie> mMovies;
     private Context mContext;
 
+    private final OnItemClickListener mItemClickListener;
+
+    public interface OnItemClickListener {
+        void onClick(Movie movie, View view);
+    }
+
     public MoviesAdapter(Context context) {
-        mContext = context;
+        if (context instanceof OnItemClickListener) {
+            mContext = context;
+            mItemClickListener = (OnItemClickListener) context;
+        } else {
+            throw new RuntimeException(context.toString()
+                    + " must implement MoviesAdapter.OnItemClickListener");
+        }
     }
 
 
-    public class MoviesAdapterViewHolder extends RecyclerView.ViewHolder {
-        public final ImageView mMoviePosterImageView;
+    public class MoviesAdapterViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
+        public final ImageButton mMoviePosterImageView;
 
         public MoviesAdapterViewHolder(View view) {
             super(view);
-            mMoviePosterImageView = (ImageView) view.findViewById(R.id.iv_movie_poster);
+            mMoviePosterImageView = (ImageButton) view.findViewById(R.id.iv_movie_poster);
+            mMoviePosterImageView.setOnClickListener(this);
+        }
+
+        @Override
+        public void onClick(View view) {
+            Movie movie = mMovies.get(getAdapterPosition());
+            mItemClickListener.onClick(movie, view);
         }
     }
 

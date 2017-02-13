@@ -1,6 +1,7 @@
 package android.nsahukar.com.popularmovies;
 
 import android.content.Context;
+import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.nsahukar.com.popularmovies.data.Movie;
@@ -9,6 +10,7 @@ import android.nsahukar.com.popularmovies.utilities.MoviesJsonUtils;
 import android.nsahukar.com.popularmovies.utilities.MoviesUrlUtils;
 import android.nsahukar.com.popularmovies.network.NetworkFragment;
 import android.support.design.widget.TabLayout;
+import android.support.v4.app.ActivityOptionsCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
@@ -17,13 +19,18 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.widget.Toast;
+import android.view.View;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import org.json.JSONException;
 
 import java.util.ArrayList;
 
-public class MoviesActivity extends AppCompatActivity implements DownloadCallback<String>, MoviesFragment.OnFragmentInteractionListener {
+public class MoviesActivity extends AppCompatActivity implements DownloadCallback<String>,
+        MoviesFragment.OnFragmentInteractionListener, MoviesAdapter.OnItemClickListener {
 
     private static final String TAG = "MoviesActivity";
     private static final int SECTION_POPULAR_MOVIES = 0;
@@ -31,8 +38,10 @@ public class MoviesActivity extends AppCompatActivity implements DownloadCallbac
     private static final String STATE_POPULAR_MOVIES = "popularMovies";
     private static final String STATE_TOP_RATED_MOVIES = "topRatedMovies";
 
+    private ProgressBar mLoadingIndicator;
+    private LinearLayout mErrorLinearLayout;
+    private TextView mErrorMessageTextView;
     private ViewPager mMoviesViewPager;
-    private Toast mToast;
 
     private NetworkFragment mNetworkFragment;
     private MoviesFragment mPopularMoviesFragment;
@@ -41,7 +50,22 @@ public class MoviesActivity extends AppCompatActivity implements DownloadCallbac
     private ArrayList<Movie> mPopularMovies;
     private ArrayList<Movie> mTopRatedMovies;
 
+    private void showMoviesViewPager() {
+        mErrorMessageTextView.setText("");
+        mErrorLinearLayout.setVisibility(LinearLayout.INVISIBLE);
+        mMoviesViewPager.setVisibility(ViewPager.VISIBLE);
+    }
 
+    private void showErrorMessage(String errMessage) {
+        mMoviesViewPager.setVisibility(ViewPager.INVISIBLE);
+        mErrorMessageTextView.setText(errMessage);
+        mErrorLinearLayout.setVisibility(LinearLayout.VISIBLE);
+    }
+
+    private void retryGettingMovies() {
+        getMoviesForSection(SECTION_POPULAR_MOVIES);
+        getMoviesForSection(SECTION_TOP_RATED_MOVIES);
+    }
 
     private void getMoviesForSection(int section) {
         switch (section) {
@@ -75,13 +99,6 @@ public class MoviesActivity extends AppCompatActivity implements DownloadCallbac
         }
     }
 
-    private void showToastWithMessage(String message) {
-        if (mToast != null) {
-            mToast.cancel();
-        }
-        mToast = Toast.makeText(MoviesActivity.this, message, Toast.LENGTH_LONG);
-        mToast.show();
-    }
 
     private class MovieSectionsPagerAdapter extends FragmentPagerAdapter {
 
@@ -168,6 +185,21 @@ public class MoviesActivity extends AppCompatActivity implements DownloadCallbac
         TabLayout moviesTabLayout = (TabLayout) findViewById(R.id.tl_movies);
         moviesTabLayout.setupWithViewPager(mMoviesViewPager);
 
+        // set up error layout, text view and retry button
+        mErrorLinearLayout = (LinearLayout) findViewById(R.id.ll_error);
+        mErrorMessageTextView = (TextView) findViewById(R.id.tv_err_message);
+        Button retryButton = (Button) findViewById(R.id.btn_retry);
+        retryButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Log.d(TAG, "retry getting movies");
+                retryGettingMovies();
+            }
+        });
+
+        // set up loading indicator
+        mLoadingIndicator = (ProgressBar) findViewById(R.id.pb_loading_indicator);
+
     }
 
     @Override
@@ -203,31 +235,42 @@ public class MoviesActivity extends AppCompatActivity implements DownloadCallbac
         Log.d(TAG, "Number of fragments attached: " + getSupportFragmentManager().getFragments().size());
     }
 
+
     /**
      *  Network Fragment Callbacks
      */
 
     @Override
+    public void startDownloading(String url) {
+        if (mPopularMovies == null && mTopRatedMovies == null) {
+            showMoviesViewPager();
+            mLoadingIndicator.setVisibility(ProgressBar.VISIBLE);
+        }
+    }
+
+    @Override
     public void updateFromDownload(String result, String url) {
         // Update your UI here based on result of download.
-        try {
-            if (url.equals(MoviesUrlUtils.getPopularMoviesUrl())) {
-                mPopularMovies = MoviesJsonUtils.getPopularMoviesArrayFromJson(result);
-                showMoviePostersForSection(SECTION_POPULAR_MOVIES);
+        if (result != null) {
+            try {
+                if (url.equals(MoviesUrlUtils.getPopularMoviesUrl())) {
+                    mPopularMovies = MoviesJsonUtils.getPopularMoviesArrayFromJson(result);
+                    showMoviePostersForSection(SECTION_POPULAR_MOVIES);
+                }
+                else if (url.equals(MoviesUrlUtils.getTopRatedMoviesUrl())) {
+                    mTopRatedMovies = MoviesJsonUtils.getTopRatedMoviesArrayFromJson(result);
+                    showMoviePostersForSection(SECTION_TOP_RATED_MOVIES);
+                }
+            } catch (NullPointerException | JSONException e) {
+                showErrorMessage(getString(R.string.err_no_data));
+                Log.e(TAG, "Invalid JSON Data for request - " + MoviesUrlUtils.getPopularMoviesUrl());
+                Log.e(TAG, "Received response - " + result);
+                e.printStackTrace();
             }
-            else if (url.equals(MoviesUrlUtils.getTopRatedMoviesUrl())) {
-                mTopRatedMovies = MoviesJsonUtils.getTopRatedMoviesArrayFromJson(result);
-                showMoviePostersForSection(SECTION_TOP_RATED_MOVIES);
-            }
-        } catch (NullPointerException e) {
-            showToastWithMessage("Please make sure you are connected to the internet");
-            e.printStackTrace();
-        } catch (JSONException e) {
-            showToastWithMessage("Could not retrieve information, please try after some time");
-            Log.e(TAG, "Invalid JSON Data for request - " + MoviesUrlUtils.getPopularMoviesUrl());
-            Log.e(TAG, "Received response - " + result);
-            e.printStackTrace();
+        } else {
+            showErrorMessage(getString(R.string.err_no_internet_connection));
         }
+
     }
 
     @Override
@@ -256,7 +299,9 @@ public class MoviesActivity extends AppCompatActivity implements DownloadCallbac
 
     @Override
     public void finishDownloading(String url) {
-
+        if (mLoadingIndicator.getVisibility() == ProgressBar.VISIBLE) {
+            mLoadingIndicator.setVisibility(ProgressBar.INVISIBLE);
+        }
     }
 
 
@@ -270,9 +315,16 @@ public class MoviesActivity extends AppCompatActivity implements DownloadCallbac
         getMoviesForSection(section);
     }
 
-    @Override
-    public void showMovieDetails(Movie movie) {
+    /**
+     *  Movies Adapter Callbacks
+     */
 
+    @Override
+    public void onClick(Movie movie, View view) {
+        Intent intentToStartMovieDetailActivity = new Intent(MoviesActivity.this, MovieDetailActivity.class);
+        intentToStartMovieDetailActivity.putExtra(MovieDetailActivity.MOVIE_KEY, movie);
+        Bundle bundle = ActivityOptionsCompat.makeSceneTransitionAnimation(MoviesActivity.this, view, getString(R.string.transition_movie_poster)).toBundle();
+        startActivity(intentToStartMovieDetailActivity, bundle);
     }
 
 }

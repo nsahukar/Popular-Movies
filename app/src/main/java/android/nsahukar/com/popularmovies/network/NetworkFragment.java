@@ -38,6 +38,7 @@ public class NetworkFragment extends Fragment {
     }
 
     public void addRequestUrl(String url) {
+        Log.d(TAG, "adding request url: " + url);
         if (mRequestUrls != null) {
             if (!mRequestUrls.contains(url)) {
                 mRequestUrls.add(url);
@@ -47,16 +48,20 @@ public class NetworkFragment extends Fragment {
             mRequestUrls.add(url);
         }
 
+        Log.d(TAG, "no. of requests: " + mRequestUrls.size());
+
         if (mRequestUrls.size() == 1) {
             startDownloadForRequestUrl(mRequestUrls.get(0));
         }
     }
 
-    public boolean isDownloading() {
-        if (mRequestUrls != null) {
-            return mRequestUrls.size() > 0;
+    /**
+     * Cancel (and interrupt if necessary) any ongoing DownloadTask execution.
+     */
+    public void cancelDownload() {
+        if (mDownloadTask != null) {
+            mDownloadTask.cancel(true);
         }
-        return false;
     }
 
     @Override
@@ -108,18 +113,18 @@ public class NetworkFragment extends Fragment {
         mDownloadTask.execute();
     }
 
-    /**
-     * Cancel (and interrupt if necessary) any ongoing DownloadTask execution.
-     */
-    public void cancelDownload() {
-        if (mDownloadTask != null) {
-            mDownloadTask.cancel(true);
+    private void downloadingCancelledForRequestUrl(String url) {
+        if (mRequestUrls != null && mRequestUrls.size() > 0) {
+            mRequestUrls.remove(url);
+            if (mRequestUrls.size() > 0) {
+                startDownloadForRequestUrl(mRequestUrls.get(0));
+            }
         }
     }
 
-    private void finishDownloading() {
+    private void downloadingFinishedForRequestUrl(String url) {
         if (mRequestUrls != null && mRequestUrls.size() > 0) {
-            mRequestUrls.remove(0);
+            mRequestUrls.remove(url);
             if (mRequestUrls.size() > 0) {
                 startDownloadForRequestUrl(mRequestUrls.get(0));
             }
@@ -133,7 +138,6 @@ public class NetworkFragment extends Fragment {
 
         private String mUrl;
         private DownloadCallback<String> mCallback;
-        private boolean mRunning;
 
         DownloadTask(String url, DownloadCallback<String> callback) {
             setUrl(url);
@@ -169,7 +173,6 @@ public class NetworkFragment extends Fragment {
          */
         @Override
         protected void onPreExecute() {
-            mRunning = true;
             if (mCallback != null) {
                 NetworkInfo networkInfo = mCallback.getActiveNetworkInfo();
                 if (networkInfo == null || !networkInfo.isConnected() ||
@@ -178,6 +181,9 @@ public class NetworkFragment extends Fragment {
                     // If no connectivity, cancel task and update Callback with null data.
                     mCallback.updateFromDownload(null, mUrl);
                     cancel(true);
+                    downloadingCancelledForRequestUrl(mUrl);
+                } else {
+                    mCallback.startDownloading(mUrl);
                 }
             }
         }
@@ -209,7 +215,6 @@ public class NetworkFragment extends Fragment {
          */
         @Override
         protected void onPostExecute(Result result) {
-            mRunning = false;
             if (result != null && mCallback != null) {
                 if (result.mException != null) {
                     mCallback.updateFromDownload(result.mException.getMessage(), mUrl);
@@ -217,7 +222,7 @@ public class NetworkFragment extends Fragment {
                     mCallback.updateFromDownload(result.mResultValue, mUrl);
                 }
                 mCallback.finishDownloading(mUrl);
-                finishDownloading();
+                downloadingFinishedForRequestUrl(mUrl);
             }
         }
 
@@ -269,10 +274,6 @@ public class NetworkFragment extends Fragment {
                 }
             }
             return result;
-        }
-
-        public boolean isRunning() {
-            return mRunning;
         }
 
     }

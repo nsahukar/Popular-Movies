@@ -1,12 +1,22 @@
 <resources>
-    <string name="app_name">PopularMovies</string>
+    <string name="app_name">Popular Movies</string>
 
     <!-- Movies Activity -->
-    <string name="activity_movies_title">Movies</string>
+    <string name="activity_movies_title">Popular Movies</string>
     <string name="section_popular_movies_title">Popular</string>
     <string name="section_top_rated_movies_title">Top Rated</string>
+    <string name="btn_retry">Retry</string>
+    <string name="content_desc_movie_poster">Movie Poster</string>
+    <string name="transition_movie_poster">Movie Poster Transition</string>
+
+    <!-- Movies Detail Activity -->
+    <string name="content_desc_movie_backdrop">Movie Backdrop</string>
+    <string name="text_movie_plot">Plot</string>
 
 
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <!-- Error Messages -->
+    <string name="err_no_internet_connection">No Internet connection. Make sure that Wi-Fi or cellular mobile data is turned on, then try again.</string>
+    <string name="err_no_data">Not able to retrieve movies this time. Please try after some time.</string>
+    <string name="title_activity_movie_detail">MovieDetailActivity</string>
+    <string name="action_settings">Settings</string>
 </resources>

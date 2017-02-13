@@ -10,21 +10,18 @@ import java.util.Date;
 
 public final class MoviesDateUtils {
 
-    public static Date getDateFromString(String dateStr) {
+    public static String getFriendlyDateString(String dateStr) {
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
         try {
-            return formatter.parse(dateStr);
+            Date date = formatter.parse(dateStr);
+            if (date != null) {
+                formatter = new SimpleDateFormat("dd MMM yyyy");
+                return formatter.format(date);
+            }
         } catch (NullPointerException | ParseException e) {
             e.printStackTrace();
             return null;
         }
-    }
-
-    public static String getFriendlyDateString(Date date) {
-        if (date != null) {
-            SimpleDateFormat formatter = new SimpleDateFormat("dd MMM yyyy");
-            return formatter.format(date);
-        }
-        return "-- --- ----";
+        return dateStr;
     }
 }

@@ -42,7 +42,7 @@ public final class MoviesJsonUtils {
             movie.setPosterPath(movieJsonObj.getString(POSTER_PATH));
             movie.setOverview(movieJsonObj.getString(OVERVIEW));
             movie.setVoteAverage(movieJsonObj.getDouble(VOTE_AVERAGE));
-            movie.setReleaseDate(movieJsonObj.getString(RELEASE_DATE));
+            movie.setReleaseDate(MoviesDateUtils.getFriendlyDateString(movieJsonObj.getString(RELEASE_DATE)));
             movie.setBackdropPath(movieJsonObj.getString(BACKDROP_PATH));
 
             popularMovies.add(movie);
