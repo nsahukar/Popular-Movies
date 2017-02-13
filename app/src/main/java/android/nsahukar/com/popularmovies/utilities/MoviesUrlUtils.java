@@ -12,7 +12,10 @@ public final class MoviesUrlUtils {
     private static final String POPULAR_MOVIES_EXTENSION = "/movie/popular";
     private static final String TOP_RATED_MOVIES_EXTENSION = "/movie/top_rated";
 
-    private static final String apiKey = "08b58d6533f2853d6cca45e68b601a40";
+    /*
+        Enter your API key from the themoviedb.org site
+     */
+    private static final String apiKey = "<ENTER YOUR API KEY HERE>";
     private static final String langauge = "en-US";
 
     private final static String API_KEY_PARAM = "api_key";
