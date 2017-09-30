@@ -15,8 +15,8 @@ public final class MoviesUrlUtils {
     /*
         Enter your API key from the themoviedb.org site
      */
-    private static final String apiKey = "<ENTER YOUR API KEY HERE>";
-    private static final String langauge = "en-US";
+    private static final String apiKey = "08b58d6533f2853d6cca45e68b601a40";
+    private static final String language = "en-US";
 
     private final static String API_KEY_PARAM = "api_key";
     private final static String LANGUAGE_PARAM = "language";
@@ -38,7 +38,7 @@ public final class MoviesUrlUtils {
         String extendedUrl = BASE_URL + extension;
         Uri builtUri = Uri.parse(extendedUrl).buildUpon()
                 .appendQueryParameter(API_KEY_PARAM, apiKey)
-                .appendQueryParameter(LANGUAGE_PARAM, langauge)
+                .appendQueryParameter(LANGUAGE_PARAM, language)
                 .build();
         return builtUri.toString();
     }

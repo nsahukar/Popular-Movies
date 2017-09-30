@@ -1,6 +1,5 @@
 package android.nsahukar.com.popularmovies.utilities;
 
-import android.content.Context;
 import android.nsahukar.com.popularmovies.data.Movie;
 
 import org.json.JSONArray;
@@ -27,7 +26,6 @@ public final class MoviesJsonUtils {
         final String VOTE_AVERAGE = "vote_average";
         final String RELEASE_DATE = "release_date";
         final String BACKDROP_PATH = "backdrop_path";
-
 
         JSONObject popularMoviesJsonObj = new JSONObject(popularMoviesJsonStr);
         JSONArray popularMoviesJsonArr = popularMoviesJsonObj.getJSONArray(RESULTS);
